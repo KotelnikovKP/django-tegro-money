@@ -61,7 +61,7 @@ Notification URL
 URL: https://<your_site>/payment_status/
 ```
 
-Add secret parameters of your store (`Shop ID`, `Secret KEY` and `API KEY`) in your `settings.py`:
+Add secret parameters of your store (`Shop ID`, `Secret KEY` and `API KEY`) in your `settings.py` (it's best to store secret settings locally):
 
 ```python
 TEGRO_MONEY_SHOP_ID = <Shop ID>
@@ -105,6 +105,11 @@ data = {
 # Send request to Tergo Money
 try:
     result = tegro_money.create_order(**data)
+    
+    # Save order id from tegro money for future use
+    tegro_money_order_id = result['data']['id']
+    
+    # Redirect to payment page
     return redirect(result['data']['url'])
 except:
     pass
