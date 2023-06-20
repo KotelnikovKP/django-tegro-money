@@ -33,7 +33,7 @@ setup(
         "Framework :: Django",
     ],
     keywords="tegro money api connector",
-    packages=["django_tegro_money", ],
+    packages=["django_tegro_money", "django_tegro_money.migrations", ],
     python_requires=">=3.8",
     install_requires=[
         "requests",
