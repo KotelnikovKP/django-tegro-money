@@ -49,13 +49,13 @@ python manage.py migrate
 ```
 
 ## Usage
-The first before using `django-tegro-money` you must register with `Tegro.Money`. [Do it ...](https://tegro.money/my/register/).
+The first before using `django-tegro-money` you must register with `Tegro Money`. [Do it ...](https://tegro.money/my/register/).
 
 Then you must add a store. [Do it ...](https://tegro.money/my/add-shop/).
 
 You can find more information [here](https://tegro.money/docs/en/begin/register/).
 
-NOTICE! Specify `payment_status` as `Notification URL`:
+NOTICE! Specify `/payment_status/` as `Notification URL`:
 ```
 Notification URL
 URL: https://<your_site>/payment_status/
@@ -102,7 +102,7 @@ data = {
   }
 }
 
-# Send request to Tergo Money
+# Send request to Tegro Money
 try:
     result = tegro_money.create_order(**data)
     
