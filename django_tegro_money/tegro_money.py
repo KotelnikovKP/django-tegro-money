@@ -10,11 +10,14 @@ import time
 from datetime import datetime, timezone
 
 import requests
+from django.db import transaction
 from requests import JSONDecodeError
 
 from django_tegro_money.exceptions import FailedRequestError
 from django_tegro_money.loggers import get_logger
+from django_tegro_money.models import TegroMoneyOrder, TegroMoneyOrderFields, TegroMoneyOrderReceipt
 from django_tegro_money.settings import TEGRO_MONEY_SHOP_ID, TEGRO_MONEY_API_KEY
+from django_tegro_money.utils import ftod
 
 HTTP_URL = "https://tegro.money/api/"
 
@@ -218,10 +221,63 @@ class TegroMoney:
             Additional information:
                 https://tegro.money/docs/api/info/create-order/
         """
-        return self._submit_request(
+
+        with transaction.atomic():
+            order = TegroMoneyOrder()
+            order.shop_id = TEGRO_MONEY_SHOP_ID
+            order.date_created = datetime.now(timezone.utc)
+            for key, value in kwargs.items():
+                if key == 'currency':
+                    order.currency = str(value)
+                elif key == 'amount':
+                    order.amount = ftod(value)
+                elif key == 'payment_system':
+                    order.payment_system = int(value)
+                elif key == 'order_id':
+                    order.payment_id = str(value)
+                elif key == 'test_order':
+                    order.test_order = int(value)
+            order.save()
+
+            kwargs_fields = kwargs.get('fields', None)
+            if kwargs_fields:
+                for fields_key, fields_value in kwargs_fields.items():
+                    order_fields = TegroMoneyOrderFields()
+                    order_fields.order = order
+                    order_fields.field_name = str(fields_key)
+                    order_fields.field_value = str(fields_value)
+                    order_fields.save()
+
+            kwargs_receipt = kwargs.get('receipt', None)
+            if kwargs_receipt:
+                receipt_items = kwargs_receipt.get('items', None)
+                if receipt_items:
+                    for receipt_item in receipt_items:
+                        order_receipt = TegroMoneyOrderReceipt()
+                        for receipt_key, receipt_value in receipt_item.items():
+                            order_receipt.order = order
+                            if receipt_key == 'name':
+                                order_receipt.name = str(receipt_value)
+                            elif receipt_key == 'count':
+                                order_receipt.count = ftod(receipt_value)
+                            elif receipt_key == 'price':
+                                order_receipt.price = ftod(receipt_value)
+                        order_receipt.save()
+
+        result = self._submit_request(
             path=f'{self.endpoint}createOrder/',
             data=kwargs,
         )
+
+        with transaction.atomic():
+            order.status = 0
+            if result.get('data', False):
+                order_id = result['data'].get('id', None)
+                if order_id:
+                    order.order_id = int(order_id)
+            order.save()
+
+        return result
 
     def get_shops(self, **kwargs) -> dict:
         """
